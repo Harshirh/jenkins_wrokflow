@@ -12,6 +12,7 @@ pipeline {
 
     environment {
         IMAGE_REPO = 'harshithreddy382/ecommerce-app'
+        KUBECONFIG = 'C:/ProgramData/Jenkins/.kube/config'
     }
 
     stages {
