@@ -11,8 +11,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB = credentials('dockerhub-credentials')
-        IMAGE_NAME = 'ecommerce-app'
+        IMAGE_REPO = 'harshithreddy382/ecommerce-app'
     }
 
     stages {
@@ -21,7 +20,6 @@ pipeline {
                 checkout scm
                 script {
                     env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-                    env.IMAGE_REPO = "${env.DOCKERHUB_USR}/${env.IMAGE_NAME}"
                 }
                 bat 'git status --short'
             }
@@ -54,20 +52,23 @@ exit /b 1'''
             }
         }
 
-        stage('Docker Hub Login') {
-            steps {
-                bat 'echo %DOCKERHUB_PSW%| docker login --username %DOCKERHUB_USR% --password-stdin'
-            }
-        }
-
         stage('Push') {
             steps {
-                bat 'docker push %IMAGE_REPO%:%IMAGE_TAG%'
-                bat 'docker push %IMAGE_REPO%:latest'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    script {
+                        try {
+                            bat 'echo %DOCKERHUB_PASSWORD%| docker login --username %DOCKERHUB_USERNAME% --password-stdin'
+                            bat 'docker push %IMAGE_REPO%:%IMAGE_TAG%'
+                            bat 'docker push %IMAGE_REPO%:latest'
+                        } finally {
+                            bat 'docker logout'
+                        }
+                    }
+                }
             }
         }
 
-        stage('Kubernetes Deployment') {
+        stage('Deploy') {
             steps {
                 bat '''@echo off
 for /f "usebackq delims=" %%C in (`kubectl config current-context`) do set KUBE_CONTEXT=%%C
@@ -84,7 +85,7 @@ if errorlevel 1 exit /b 1'''
             }
         }
 
-        stage('Verification') {
+        stage('Verify') {
             steps {
                 bat 'kubectl rollout status deployment/ecommerce-app --timeout=180s'
                 bat 'kubectl get pods -l app=ecommerce-app -o wide'
@@ -95,7 +96,7 @@ if errorlevel 1 exit /b 1'''
 
     post {
         always {
-            bat 'docker logout'
+            echo 'Pipeline finished.'
         }
     }
 }
