@@ -75,9 +75,9 @@ if not "%KUBE_CONTEXT%"=="docker-desktop" (
   echo Expected Kubernetes context docker-desktop, found %KUBE_CONTEXT%.
   exit /b 1
 )
-kubectl apply -f k8s\deployment.yaml
+kubectl apply -f k8s/deployment.yaml
 if errorlevel 1 exit /b 1
-kubectl apply -f k8s\service.yaml
+kubectl apply -f k8s/service.yaml
 if errorlevel 1 exit /b 1
 kubectl set image deployment/ecommerce-app ecommerce-app=%IMAGE_REPO%:%IMAGE_TAG%
 if errorlevel 1 exit /b 1'''
